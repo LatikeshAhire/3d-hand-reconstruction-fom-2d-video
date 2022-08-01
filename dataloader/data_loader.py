@@ -108,7 +108,7 @@ class DataLoaderSceneFlow(object):
 
 
 class DataLoaderKITTI(object):
-    data_path = './dataset/data_scene_flow_2015/training/'
+    data_path = '/content/psmnet/training/'
 
     def __init__(self, batch_size, patch_size=[256, 512], max_disp=192,
                  val_size=40):
@@ -204,7 +204,7 @@ class DataLoaderKITTI(object):
 
 
 class DataLoaderKITTI_SUBMISSION(object):
-    data_path = './dataset/data_scene_flow_2015/testing/'
+    data_path = '/content/psmnet/testing/'
 
     def __init__(self):
         self.test_left_img, self.test_right_img = lt.get_kitti_2015_submission(self.data_path)
