@@ -24,15 +24,25 @@ def train(ckpt_path, train_data_loader, val_data_loader, save_model_name):
     :return:
     """
     with tf.Session() as sess:
-        # 构建模型
+        # Build the model
         model = PSMNet(width=config.TRAIN_CROP_WIDTH, height=config.TRAIN_CROP_HEIGHT, channels=config.IMG_N_CHANNEL,
                        head_type=config.HEAD_STACKED_HOURGLASS, batch_size=config.TRAIN_BATCH_SIZE)
         model.build_net()
-
+        
+        total_parameters = 0
+        for variable in tf.trainable_variables():
+            shape = variable.get_shape()
+            variable_parameters = 1
+            for dim in shape:
+                variable_parameters *= dim.value
+            total_parameters += variable_parameters
+        print("total parameters: ",total_parameters)
+        
+        
         saver = tf.train.Saver()
         writer = tf.summary.FileWriter('log/', sess.graph)
         global_step = 0
-        # 训练
+        # train
         sess.run(tf.global_variables_initializer())
         # saver.restore(sess, save_path=ckpt_path)
         for epoch in range(1, config.TRAIN_EPOCH + 1):
@@ -48,7 +58,7 @@ def train(ckpt_path, train_data_loader, val_data_loader, save_model_name):
                 epoch_loss += loss
                 step_ave_loss += loss
                 global_step += 1
-                # 保存日志
+                # save log
                 writer.add_summary(log, global_step)
                 if step % config.LOG_INTERVAL == 0 and step > 0:
                     print('EPOCH {:04d} - {:04d}/{:04d}  LOSS: {:.4f}'.format(
@@ -58,23 +68,24 @@ def train(ckpt_path, train_data_loader, val_data_loader, save_model_name):
                     step_ave_loss = 0
             print('EPOCH LOSS: {}'.format(epoch_loss / step))
 
-            # 验证
+            # verify
             val(sess, model, val_data_loader, vis=False, save_fig=False)
 
-            # 保存模型
+            # save model
+
             saver.save(sess, save_path='./ckpt/{}.ckpt'.format(save_model_name), global_step=epoch)
 
 
 def val(sess, model: PSMNet, data_loader, vis=False, save_fig=False):
     """
-    验证
+    verify
     :param sess:
     :param model:
     :param vis:
     :return:
     """
     error_total = []
-    # 验证
+    # verify
     for step, (imgL_crop, imgR_crop, groundtruth) in enumerate(data_loader.generator(is_training=False)):
         prediction = model.predict(
             sess,
@@ -83,12 +94,12 @@ def val(sess, model: PSMNet, data_loader, vis=False, save_fig=False):
         )
 
         if groundtruth is not None:
-            # 计算误差
+            # Calculation error
             error_npx = utils.compute_npx_error(prediction, groundtruth, n=5)
             error_total.append(error_npx)
             print('npx-Error: {}'.format(error_npx))
 
-        # 可视化
+        # visualization
         for img_id in range(len(prediction)):
             if save_fig:
                 cv2.imwrite('./vis/{:05d}_{:03d}.png'.format(step, img_id), prediction[img_id])
@@ -108,7 +119,7 @@ def val(sess, model: PSMNet, data_loader, vis=False, save_fig=False):
 
 def finetune():
     """
-    在KITTI数据集上调优
+    Tuning on the KITTI dataset
     :return:
     """
     train(
