@@ -193,7 +193,7 @@ class PSMNet:
             # three-layer stacked hourglass
             with tf.variable_scope('3Dstack1'):
                 outputs, _3Dstack1_1, _3Dstack1_3 = self.hourglass(outputs, None, None, _3Dconv1, name='3Dstack1')
-                # 回归输出
+                # regression output
                 disparity_1, classify_skip_out = self.disparity_regression(outputs, pre=None,
                                                                            name='output_1')
 
