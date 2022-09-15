@@ -3,19 +3,22 @@ import re
 import numpy as np
 
 import config
+import copy
 
 
 def compute_npx_error(prediction, gt, n):
     # computing n-px error
-    true_disp = gt
-    index = np.argwhere(true_disp > 0).T
-    gt[index[0][:], index[1][:], index[2][:]] = np.abs(
-        true_disp[index[0][:], index[1][:], index[2][:]] - prediction[index[0][:], index[1][:], index[2][:]])
+    gt = copy.deepcopy(gt)
+    array = np.zeros(gt.shape)
+    array[gt>0] = 1
 
-    correct = (gt[index[0][:], index[1][:], index[2][:]] < n) | \
-              (gt[index[0][:], index[1][:], index[2][:]] < true_disp[index[0][:], index[1][:], index[2][:]] * 0.05)
+    greater_than_one = len(array[array==1])
 
-    return 1 - (float(np.sum(correct)) / float(len(index[0])))
+    disp_true = np.abs(gt-prediction)
+    disp_true = disp_true*array
+    error = len(disp_true[disp_true>3])
+
+    return 1-float(error)/float(greater_than_one)
 
 
 def readPFM(file):
