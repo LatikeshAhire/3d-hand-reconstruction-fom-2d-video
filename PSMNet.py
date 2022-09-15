@@ -68,8 +68,8 @@ class PSMNet:
             with tf.compat.v1.variable_scope('conv1'):
                 # Three-layer res convolution
                 for layer_id in range(3):
-                    outputs = self._build_residual_block(
-                        outputs, tf.compat.v1.layers.conv2d, filters=32, kernel_size=3,
+                    outputs = self._build_inception_block(
+                        outputs, tf.compat.v1.layers.conv2d, filters=32, kernel_size=3,projection=(layer_id == 0),
                         reuse=weight_share, layer_name='res_conv1_{}'.format(layer_id + 1)
                     )
 
@@ -86,7 +86,7 @@ class PSMNet:
             with tf.compat.v1.variable_scope('conv3'):
                 # The first layer contains the projection and the remaining 2 layers are normal residual connections
                 for layer_id in range(3):
-                    outputs = self._build_residual_block(
+                    outputs = self._build_inception_block(
                         outputs, tf.compat.v1.layers.conv2d, filters=128, kernel_size=3,
                         dilation_rate=2, projection=(layer_id == 0),
                         reuse=weight_share, layer_name='res_conv3_{}'.format(layer_id + 1)
@@ -97,7 +97,7 @@ class PSMNet:
                 for layer_id in range(3):
                     outputs = self._build_residual_block(
                         outputs, tf.compat.v1.layers.conv2d, filters=128, kernel_size=3,
-                        dilation_rate=4,
+                        dilation_rate=4,projection=(layer_id == 0),
                         reuse=weight_share, layer_name='res_conv4_{}'.format(layer_id + 1)
                     )
 
@@ -351,6 +351,12 @@ class PSMNet:
             'kernel_initializer': tf.compat.v1.keras.initializers.glorot_normal(),
             'kernel_regularizer': tf.compat.v1.keras.regularizers.L2(config.L2_REG),
             'bias_regularizer': tf.compat.v1.keras.regularizers.L2(config.L2_REG),
+        }
+        conv_param2 = {
+            'padding': 'same',
+            'kernel_initializer': tf.compat.v1.keras.initializers.glorot_normal(),
+            'kernel_regularizer': tf.compat.v1.keras.regularizers.L2(config.L2_REG),
+            'bias_regularizer': tf.compat.v1.keras.regularizers.L2(config.L2_REG),
             'reuse': reuse
         }
         if dilation_rate:
@@ -358,7 +364,10 @@ class PSMNet:
         # Building Convolutional Blocks
         with tf.compat.v1.variable_scope(layer_name):
             # convolution
-            outputs = conv_function(inputs, filters, kernel_size, strides, **conv_param)
+            if conv_function==tf.compat.v1.layers.conv2d:
+                outputs = SeparableConv2D( filters, kernel_size, strides, **conv_param)(inputs)
+            else:
+                outputs = conv_function(inputs, filters, kernel_size, strides, **conv_param2)
 
             # bn
             if apply_bn:
@@ -392,6 +401,68 @@ class PSMNet:
                 inputs_shortcut = self._build_conv_block(inputs_shortcut, conv_function, filters, kernel_size=1,
                                                          strides=strides, layer_name='projection',
                                                          apply_relu=False, apply_bn=False, reuse=reuse)
+            # Add residual connection
+
+            outputs = tf.compat.v1.add(outputs, inputs_shortcut, name='add')
+            outputs = tf.compat.v1.nn.relu(outputs, name='relu')
+            return outputs
+    def _build_inception_block(self, inputs, conv_function, filters, kernel_size, strides=1, dilation_rate=1,
+                              layer_name='conv', reuse=False, projection=False):
+
+        filter1=filters
+        filter2=filters
+        filter3=filters
+        total_filters=filter1+filter2+filter3
+
+        # Build Residual Connection Blocks
+        with tf.compat.v1.variable_scope(layer_name):
+            inputs_shortcut = inputs
+            # Build the first  conv layers of res_block
+
+            # (1x1 -> 3x3->3x3) dilation
+            outputs1 = self._build_conv_block(inputs, conv_function, filter1/2, 1, strides=strides, layer_name=layer_name + '_1', reuse=reuse)
+
+            # Note that the second layer has no relu and strides=1 (guarantee no downsampling, downsampling is done by the first conv)
+            outputs1 = self._build_conv_block(outputs1, conv_function, filter1, kernel_size, strides=1,
+                                             dilation_rate=dilation_rate, layer_name=layer_name + '_2',
+                                             apply_relu=False, reuse=reuse)
+            outputs1 = self._build_conv_block(outputs1, conv_function, filter1, kernel_size, strides=1,
+                                             dilation_rate=dilation_rate, layer_name=layer_name + '_2.1',
+                                             apply_relu=False, reuse=reuse)
+
+
+            # (1x1 -> 3x3->3x3) 2xdilation
+            outputs2 = self._build_conv_block(inputs, conv_function, filter2/2, 1, strides=strides, layer_name=layer_name + '_3', reuse=reuse)
+
+            # Note that the second layer has no relu and strides=1 (guarantee no downsampling, downsampling is done by the first conv)
+            outputs2 = self._build_conv_block(outputs2, conv_function, filter2, kernel_size, strides=1,
+                                             dilation_rate=2*dilation_rate, layer_name=layer_name + '_4',
+                                             apply_relu=False, reuse=reuse)
+            # outputs2 = self._build_conv_block(outputs2, conv_function, filter2, kernel_size, strides=1,
+            #                                  dilation_rate=2*dilation_rate, layer_name=layer_name + '_4.1',
+            #                                  apply_relu=False, reuse=reuse)
+
+
+            # (1x1 -> 5x5) 
+            outputs3 = self._build_conv_block(inputs, conv_function, filter3/2, 1, strides=strides, layer_name=layer_name + '_5', reuse=reuse)
+
+            # Note that the second layer has no relu and strides=1 (guarantee no downsampling, downsampling is done by the first conv)
+            outputs3 = self._build_conv_block(outputs2, conv_function, filter3, 5, strides=1,
+                                             dilation_rate=dilation_rate, layer_name=layer_name + '_6',
+                                             apply_relu=False, reuse=reuse)
+            # outputs3 = self._build_conv_block(outputs2, conv_function, filter3, 5, strides=1,
+            #                                  dilation_rate=2*dilation_rate, layer_name=layer_name + '_7',
+            #                                  apply_relu=False, reuse=reuse)
+
+            outputs=tf.compat.v1.concat([outputs1,outputs2,outputs3], axis=-1, name='inception_block_concat')
+
+            print(outputs.shape)
+            # 1x1 projection to ensure that the channels of inputs_shortcut and outputs are consistent
+            if projection:
+                print(total_filters)
+                inputs_shortcut = self._build_conv_block(inputs_shortcut, conv_function, total_filters, kernel_size=1,
+                                                         strides=strides, layer_name='projection',
+                                                         apply_relu=False, apply_bn=False, reuse=reuse)           
             # Add residual connection
 
             outputs = tf.compat.v1.add(outputs, inputs_shortcut, name='add')
