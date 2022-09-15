@@ -358,10 +358,7 @@ class PSMNet:
         # Building Convolutional Blocks
         with tf.compat.v1.variable_scope(layer_name):
             # convolution
-            if conv_function==tf.compat.v1.layers.conv2d:
-                outputs = SeparableConv2D( filters, kernel_size, strides, **conv_param)(inputs)
-            else:
-                outputs = conv_function(inputs, filters, kernel_size, strides, **conv_param)
+            outputs = conv_function(inputs, filters, kernel_size, strides, **conv_param)
 
             # bn
             if apply_bn:
