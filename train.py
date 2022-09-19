@@ -95,7 +95,7 @@ def val(sess, model: PSMNet, data_loader, vis=False, save_fig=False):
 
         if groundtruth is not None:
             # Calculation error
-            error_npx = utils.compute_npx_error(prediction, groundtruth, n=5)
+            error_npx = utils.compute_npx_error(prediction, groundtruth, n=3)
             error_total.append(error_npx)
             print('npx-Error: {}'.format(error_npx))
 
