@@ -13,13 +13,13 @@ import matplotlib.pyplot as plt
 
 def sceneflow_predict(ckpt_path, vis=True, save_fig=True):
     """
-    scene flow测试
+    scene flow
     :param ckpt_path:
     :param vis:
     :return:
     """
     with tf.Session() as sess:
-        # 构建模型
+       
         model = PSMNet(width=config.TRAIN_CROP_WIDTH, height=config.TRAIN_CROP_HEIGHT, channels=config.IMG_N_CHANNEL,
                        head_type=config.HEAD_STACKED_HOURGLASS, batch_size=config.VAL_BATCH_SIZE)
         model.build_net()
@@ -34,7 +34,7 @@ def sceneflow_predict(ckpt_path, vis=True, save_fig=True):
 
 def kitti_predict(ckpt_path, vis=True, save_fig=True):
     """
-    scene flow测试
+    scene flow
     :param ckpt_path:
     :param vis:
     :return:
@@ -42,7 +42,7 @@ def kitti_predict(ckpt_path, vis=True, save_fig=True):
     gpu_config = tf.ConfigProto()
     gpu_config.gpu_options.allow_growth = True
     with tf.Session(config=gpu_config) as sess:
-        # 构建模型
+       
         model = PSMNet(width=config.KITTI2015_SIZE[1], height=config.KITTI2015_SIZE[0], channels=config.IMG_N_CHANNEL,
                        head_type=config.HEAD_STACKED_HOURGLASS, batch_size=config.VAL_BATCH_SIZE)
         # model = PSMNet(width=config.TRAIN_CROP_WIDTH, height=config.TRAIN_CROP_HEIGHT, channels=config.IMG_N_CHANNEL,
@@ -55,7 +55,7 @@ def kitti_predict(ckpt_path, vis=True, save_fig=True):
         test_loader = DataLoaderKITTI_SUBMISSION()
         # test_loader = DataLoaderKITTI(batch_size=config.TRAIN_BATCH_SIZE, max_disp=config.MAX_DISP)
 
-        # 验证
+        
         for img_id, (imgL_crop, imgR_crop, groundtruth) in enumerate(test_loader.generator(is_training=False)):
             prediction = model.predict(
                 sess,
@@ -63,7 +63,7 @@ def kitti_predict(ckpt_path, vis=True, save_fig=True):
                 right_imgs=imgR_crop,
             )
 
-            # 可视化
+            
             if save_fig:
                 cv2.imwrite('./vis/{}'.format(test_loader.test_left_img[img_id].split('/')[-1]),
                             (prediction[0] * 256 * 1.17).astype('uint16'))
