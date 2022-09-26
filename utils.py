@@ -59,7 +59,6 @@ def readPFM(file):
     data = np.reshape(data, shape)
     data = np.flipud(data)
 
-    # 加入maxdisp限制
     data[data > (config.MAX_DISP - 1)] = config.MAX_DISP - 1
     return data
 
