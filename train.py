@@ -135,10 +135,10 @@ if __name__ == '__main__':
     # tests(ckpt_path='./ckpt/scene_flow_hgls.ckpt-32', vis=True)
     # train(
     #     ckpt_path='./ckpt/scene_flow_hgls.ckpt-6',
-    #     # 载入数据集
+
     #     train_data_loader=DataLoaderSceneFlow(batch_size=config.TRAIN_BATCH_SIZE, max_disp=config.MAX_DISP),
     #     val_data_loader=DataLoaderSceneFlow(batch_size=config.VAL_BATCH_SIZE, max_disp=config.MAX_DISP),
     #     save_model_name='scene_flow_hgls'
     # )
-    # 调优
+
     finetune()
