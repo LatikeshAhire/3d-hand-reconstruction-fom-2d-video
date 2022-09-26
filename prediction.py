@@ -1,6 +1,12 @@
+
+import cv2
+import os
+import cv2
+import numpy as np
+import glob
+import matplotlib.pyplot as plt
+
 def predict_video():
-    import cv2
-    import os
     
     # Read the video from specified path
     videoLink=input("input video location: ")
