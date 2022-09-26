@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 10 15:13:35 2019
-
-@author: Administrator
-"""
 
 import numpy as np
 import random
@@ -195,7 +189,6 @@ class DataLoaderKITTI(object):
             z = Image.open(z)
             z = cv2.resize(np.ascontiguousarray(z, dtype=np.float32) / 256, (self.img_width, self.img_height))
 
-            # 加上最大值的限制
             # z[z > (self.max_disp - 1)] = self.max_disp - 1
 
             z = z[crop_x: crop_x + self.patch_size[0], crop_y: crop_y + self.patch_size[1]]
@@ -211,7 +204,6 @@ class DataLoaderKITTI_SUBMISSION(object):
 
     def generator(self, is_training=False):
         """
-        生成测试图像
         :return:
         """
         for x, y in zip(self.test_left_img, self.test_right_img):
