@@ -36,8 +36,8 @@ def predict_video():
             # show how many frames are created
             currentframe += 1
             # print(currentframe)
-#             if(currentframe==1500):
-#                 break
+            if(currentframe==6000):
+                break
 
         else:
             break
